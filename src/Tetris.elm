@@ -9,14 +9,15 @@ import TetrisColor exposing (..)
 import Board exposing (..)
 import Control exposing (..)
 import Control
-import Dict exposing (Dict, fromList, member, getOrElse)
+import Dict exposing (Dict, fromList, member)
 import Dict
 import Keyboard exposing (arrows, keysDown)
-import Random exposing (range)
+import Random
 import Char exposing (toCode, fromCode)
 import Graphics.Element as G
 import Graphics.Collage as C
 import Text
+import Time exposing (every, second)
 
 type alias Piece = (Tetromino, TetrisColor)
 
@@ -25,10 +26,10 @@ width = 300
 height = 2*width
 fwidth = toFloat width
 fheight = toFloat height
-panelWidth = width `div` 3
+panelWidth = width // 3
 panelHeight = height
 
-blockSize = width `div` 10
+blockSize = width // 10
 fblockSize = toFloat blockSize
 tapDelay = 0.08
 maxMovesPerSecond = 100
@@ -51,15 +52,18 @@ toggleMusicKey : Int
 toggleMusicKey = toCode 'm'
 
 pieceDict : Dict Int Piece
-pieceDict = fromList << zip [0..6] <| pieces
+pieceDict = fromList << List.map2 (,) [0..6] pieces
 
 pieces : List Piece
 pieces =
-  zip (map (shift (4, 0)) [line, square, zpiece, spiece, jpiece, lpiece, tpiece])
+  List.map2 (,) (List.map (shift (4, 0)) [line, square, zpiece, spiece, jpiece, lpiece, tpiece])
       [Red,  Orange, Yellow, Green,  Blue,   Indigo, Violet]
 
 getPiece : Int -> Piece
-getPiece n = getOrElse (head pieces) n pieceDict
+-- Remove Dict.getOrElse
+-- and Dict.getOrFail in favor of withDefault 0 (Dict.get key dict)
+--getPiece n = getOrElse (List.head pieces) n pieceDict
+getPiece n = Maybe.withDefault 0 (Dict.get n pieceDict)
 
 game = { board=emptyBoard,
          init=True,
@@ -98,25 +102,25 @@ handle (arrow, keys, t, next, init) = smoothControl t keys << cleanup keys << se
 clear game = {game | click = False, dropSound = False}
 
 hold ks n game =
-  let doHold = any ((==) holdKey) ks in
+  let doHold = List.any ((==) holdKey) ks in
   if doHold then (swapHold (getPiece n) game) else game
 
 
 dropSound keys g =
   if g.forceDelay then g else
-    if (any ((==)hardDropKey) keys) then {g | dropSound = True} else g
+    if (List.any ((==)hardDropKey) keys) then {g | dropSound = True} else g
 
 restartGame keys g =
   if g.forceDelay then g else
-  if (any ((==)restartKey) keys) then {game| paused = False, forceDelay = True} else g
+  if (List.any ((==)restartKey) keys) then {game| paused = False, forceDelay = True} else g
 
 pause keys game =
   if game.forceDelay then game else
-  if (any ((==)pauseKey) keys) then {game| paused = not game.paused, forceDelay = True} else game
+  if (List.any ((==)pauseKey) keys) then {game| paused = not game.paused, forceDelay = True} else game
 
 toggleMusic keys game =
   if game.forceDelay then game else
-  if (any ((==)toggleMusicKey) keys) then {game| music = not game.music, forceDelay = True} else game
+  if (List.any ((==)toggleMusicKey) keys) then {game| music = not game.music, forceDelay = True} else game
 
 
 swapHold piece game =
@@ -126,14 +130,14 @@ swapHold piece game =
       let next = {game| hold = (Just << reset <| game.falling),
                         canHold = False} in
       case game.hold of
-        Nothing -> {next| falling = (head game.preview),
-                          preview = ((tail game.preview) ++ [piece])}
+        Nothing -> {next| falling = (List.head game.preview),
+                          preview = ((List.tail game.preview) ++ [piece])}
         Just held -> {next| falling = held}
 
 reset (tr, color) =
   let ((minX, minY), (_, maxY)) = bounds tr in
   let width = 1 + maxY - minY in
-  let center = (boardWidth `div` 2) - (width `div` 2) in
+  let center = (boardWidth // 2) - (width // 2) in
   let tr' = shift (center, 0) << shift (-minX, -minY) <| tr in
   (tr', color)
 
@@ -142,14 +146,14 @@ startup (p::pieces) game =
     False -> game
     True ->
       let falling = getPiece p in
-      let preview = map getPiece pieces in
+      let preview = List.map getPiece pieces in
       {game | init = False, falling = falling, preview = preview}
 
 smoothControl t ks game =
   case ks of
-    [] -> {game | keyDelay = False, timestamp = inSeconds t, forceDelay = False, tap = False, tapped = (False, 0)}
+    [] -> {game | keyDelay = False, timestamp = Time.inSeconds t, forceDelay = False, tap = False, tapped = (False, 0)}
     _ ->
-      let time = inSeconds t in
+      let time = Time.inSeconds t in
         doKeyDelay time << doTapDelay time <| game
 
 doTapDelay time game =
@@ -170,7 +174,7 @@ cleanup keys game =
   let points = getPoints cleared in
   let score = game.score + points in
   let lines = game.lines + cleared in
-  let level = toFloat <| (lines `div` 10) + 1 in
+  let level = toFloat <| (lines // 10) + 1 in
   {game| board = board',
          score = score,
          lines = lines,
@@ -178,7 +182,7 @@ cleanup keys game =
          keys = keys}
 
 autoDrop t game =
-  let time = (inSeconds t) in
+  let time = (Time.inSeconds t) in
   let drop = (time - game.tick) > (1/game.level) in
   let next = forceControl Drop game in
     case drop of
@@ -193,21 +197,21 @@ setPiece n t game =
     False -> game
     True ->
       if not << checkSet << toGameState <| game then game else
-      if (game.setDelay > (inSeconds t)) then game else
-      let next = head game.preview in
-      let preview = (tail game.preview) ++ [getPiece n] in
+      if (game.setDelay > (Time.inSeconds t)) then game else
+      let next = List.head game.preview in
+      let preview = (List.tail game.preview) ++ [getPiece n] in
       let board' = insertTetromino (game.falling) (game.board) in
       let game' = {game | board = board', falling = next, preview = preview} in
       let gameover = not << isValidState << toGameState <| game' in
-      {game'| time = (inSeconds t), set = False, canHold = True, gameover = gameover}
+      {game'| time = (Time.inSeconds t), set = False, canHold = True, gameover = gameover}
 
 toGameState game = (game.board, fst <| game.falling)
 
 getLevel : Int -> Float
-getLevel n = toFloat <| (n `div` 10) + 1
+getLevel n = toFloat <| (n // 10) + 1
 
 keyControls ks game =
-  foldr doControl game (map getKeyControl ks)
+  List.foldr doControl game (List.map getKeyControl ks)
 
 getKeyControl : Int -> Maybe Control
 getKeyControl k =
@@ -216,7 +220,7 @@ getKeyControl k =
 arrowControls arr game =
   let x = arr.x in
   let y = arr.y in
-  let game' = foldr doControl game <| getArrowControl (x, y) in
+  let game' = List.foldr doControl game <| getArrowControl (x, y) in
   if y == 1 then {game'| click = True} else game'
 
 getArrowControl : (Int, Int) -> List Maybe Control
@@ -263,15 +267,15 @@ isSetControl c =
     HardDrop -> True
     _ -> False
 
-label l r = flow G.right [plainText l, spacer 5 5, asText r]
+label l r = G.flow G.right [G.show l, G.spacer 5 5, G.show r]
 
 
 scoreBoard game =
-  let board = flow down [label "Score: " game.score,
+  let board = G.flow G.down [label "Score: " game.score,
                          label "Level: " game.level,
                          label "Lines: " game.lines]
   in
-   collage panelWidth 100 << (flip (::) []) << C.toForm <| board
+   C.collage panelWidth 100 << (flip (::) []) << C.toForm <| board
 
 render game =
   let withPiece = insertTetromino (game.falling) (game.board) in
@@ -279,39 +283,39 @@ render game =
   let boardWithShadow = shadow (game.falling) (game.board) boardDisplay in
   if game.paused then pauseScreen game else
     if game.gameover then gameoverScreen game else
-  flow down [spacer 10 10,
-             flow G.right [holdBoard game, spacer 10 10,
-                           boardWithShadow, spacer 10 10,
+  G.flow G.down [G.spacer 10 10,
+             G.flow G.right [holdBoard game, G.spacer 10 10,
+                           boardWithShadow, G.spacer 10 10,
                            previewBoard game]]
 
 pauseScreen game =
   let w = width+2*panelWidth in
   let h = height in
-  let elem = container w h middle <| pauseScreenText game in
-  let form = collage w h [C.toForm elem] in
+  let elem = G.container w h G.middle <| pauseScreenText game in
+  let form = C.collage w h [C.toForm elem] in
   form
 
 gameoverScreen game =
   let w = width+2*panelWidth in
   let h = height in
-  let elem = container w h middle <| gameoverScreenText game in
-  let form = collage w h [C.toForm elem] in
+  let elem = G.container w h G.middle <| gameoverScreenText game in
+  let form = C.collage w h [C.toForm elem] in
   form
 
 gameoverScreenText game =
   let w = width in
   let h = 30 in
-  let contents = flow down [label "Score: " game.score,
+  let contents = G.flow G.down [label "Score: " game.score,
                           label "Level: " game.level,
                           label "Lines: " game.lines] in
-  let title = leftAligned << Text.height 28 << bold << toText <| "Game Over" in
-  flow down [spacer 10 10, title, spacer 50 50, contents, plainText "Press R to play again"]
+  let title = G.leftAligned << Text.height 28 << Text.bold << G.show <| "Game Over" in
+  G.flow G.down [G.spacer 10 10, title, G.spacer 50 50, contents, G.show "Press R to play again"]
 
 pauseScreenText game =
   let w = width in
   let h = 30 in
-  let format = map (container w h G.topLeft << plainText) in
-  let contents = flow down << format <|
+  let format = List.map (G.container w h G.topLeft << G.show) in
+  let contents = G.flow G.down << format <|
                  ["Left, Down, Right Arrow - Move",
                   "Up Arrow - Rotate",
                   "Space - Drop",
@@ -319,8 +323,8 @@ pauseScreenText game =
                   "P - Toggle this screen",
                   "M - Toggle Music",
                   "R - New Game"] in
-  let title = leftAligned << Text.height 28 << bold << toText <| "Elmtris" in
-  flow down [spacer 10 10, title, spacer 50 50, contents]
+  let title = G.leftAligned << Text.height 28 << Text.bold << C.text <| "Elmtris" in
+  G.flow G.down [G.spacer 10 10, title, G.spacer 50 50, contents]
 
 
 shadow (tr, color) board boardDisplay =
@@ -328,30 +332,33 @@ shadow (tr, color) board boardDisplay =
   let ((minX, minY), _) = bounds shadow in
   let offset = (-(fwidth/2)+(fblockSize/2), (fheight/2)-(fblockSize/2)) in
   let offset' = ((toFloat minX) * fblockSize, -(toFloat minY) * fblockSize) in
-  let elem = move offset' << move offset <| pieceToForm fblockSize (shadow, Shadow) in
+  let elem = C.move offset' << C.move offset <| pieceToForm fblockSize (shadow, Shadow) in
   let asForm = C.toForm boardDisplay in
-  collage width height [asForm, elem]
+  C.collage width height [asForm, elem]
 
 
 
 previewBoard game =
-  let preview = flow down << intersperse (spacer 10 10) << map pieceToElement <| (game.preview) in
-  container panelWidth panelHeight midTop <| flow down [spacer 10 10, plainText "Next", spacer 10 10, preview, spacer 10 10, scoreBoard game]
+  let preview = G.flow G.down << List.intersperse (G.spacer 10 10) << List.map pieceToElement <| (game.preview) in
+  G.container panelWidth panelHeight G.midTop <| G.flow G.down [G.spacer 10 10, G.show "Next", G.spacer 10 10, preview, G.spacer 10 10, scoreBoard game]
 
 holdBoard game =
   let held =
         case game.hold of
-          Nothing -> plainText "Press 'x'"
+          Nothing -> G.show "Press 'x'"
           Just x -> pieceToElement x
   in
-   let lines = collage panelWidth 30 << (flip (::) []) << C.toForm << asText <| game.lines in
-  container panelWidth panelHeight midTop <| flow down [spacer 10 10, plainText "Holding", spacer 10 10, held]
+  let lines = C.collage panelWidth 30 << (flip (::) []) << C.toForm << C.text
+    <| game.lines
+  in
+  G.container panelWidth panelHeight G.midTop
+    <| G.flow G.down [G.spacer 10 10, G.show "Holding", G.spacer 10 10, held]
 
 pieceToForm fblockSize (tr, color) =
   let ((minX, minY), (maxX, maxY)) = bounds tr in
   let translate = shift (-minX, -minY) tr in
-  let blocks = map (flip (toForm fblockSize) color) translate in
-  group blocks
+  let blocks = List.map (flip (toForm fblockSize) color) translate in
+  C.group blocks
 
 pieceToElement (tr, color) =
   let fblockSize' = fblockSize/2 in
@@ -360,20 +367,29 @@ pieceToElement (tr, color) =
   let width = (1+maxX-minX)*blockSize' in
   let height = (1+maxY-minY)*blockSize' in
   let offset = (-((toFloat width)/2-(fblockSize'/2)), (toFloat height-(fblockSize'/2))/2) in
-  let piece =  move offset <| pieceToForm fblockSize' (tr, color) in
-  collage (width+10) (height+10) [piece]
+  let piece =  C.move offset <| pieceToForm fblockSize' (tr, color) in
+  C.collage (width+10) (height+10) [piece]
 
 ticker = every <| second/fps
 
-inputSignal = lift5 (,,,,) arrows keysDown ticker (range 0 6 ticker) (randoms 6 0 6 ticker)
+inputSignal = Signal.map5 (,,,,) arrows keysDown ticker (range 0 6 ticker) (randoms 6 0 6 ticker)
 
 piece = rotate CW <| shift (0,1) zpiece
 
-randoms n low high sig = combine <| randoms' n low high sig
 
-randoms' n low high sig =
-  if n <= 0 then [] else (range low high sig)::(randoms' (n-1) low high sig)
+range : Int -> Int -> Signal Float -> Signal Int
+range low high sig =
+  (\s -> Random.generate (Random.int low high) (Random.initialSeed (round s))
+  |> Signal.map fst sig)
 
+
+randoms : Int -> Int -> Int -> Signal Float -> Signal (List Int)
+randoms n low high sig =
+  (\s -> Random.generate (Random.list n (Random.int low high))
+  (Random.initialSeed (round s))
+  |> Signal.map fst sig)
+
+{--
 handleTheme g = if g.music && (not g.paused) then Audio.Play else Audio.Pause
 
 theme =
@@ -400,7 +416,8 @@ swap =
                     propertiesHandler = (\_ -> Nothing),
                     actions = handleSwap <~ mainSignal }
     in Audio.audio builder
+--}
 
-mainSignal = foldp handle game inputSignal
+mainSignal = Signal.foldp handle game inputSignal
 
-main = render <~ mainSignal
+main = Signal.map render mainSignal
