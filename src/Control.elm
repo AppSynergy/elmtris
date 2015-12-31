@@ -79,10 +79,15 @@ centerOfMass tr =
   let (sumX, sumY, tot) = List.foldr (\(x0,y0) (x1,y1,t) -> ((toFloat x0)+x1, (toFloat y0)+y1, t+1)) (0,0,0) tr in
   (round <| sumY / tot, round' <| sumX / tot)
 
+-- Hack default results to cover the Maybe type
+-- should be safe as all Tetrominos have >0 Locations
 minimum : List comparable -> comparable
-minimum = List.minimum
+minimum xs =
+  List.minimum xs |> Maybe.withDefault 0
+
 maximum : List comparable -> comparable
-maximum = List.maximum
+maximum xs =
+  List.maximum xs |> Maybe.withDefault 0
 
 -- Given a Tetromino, return the bounding box that encompasses
 -- all of its locations
