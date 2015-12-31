@@ -136,11 +136,12 @@ swapHold piece game =
     True ->
       let
         next = {game| hold = (Just << reset <| game.falling), canHold = False}
+        preRemain = Maybe.withDefault [(line,Blue)] (List.tail game.preview)
       in
       case game.hold of
         Nothing -> { next|
           falling = (List.head game.preview),
-          preview = ((List.tail game.preview) ++ [piece])
+          preview = (preRemain ++ [piece])
           }
         Just held -> { next|
           falling = held
