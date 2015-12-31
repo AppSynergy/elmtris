@@ -84,7 +84,7 @@ centerOfMass tr =
 bounds : Tetromino -> Bound
 bounds tr =
   let (xs, ys) = List.unzip tr in
-  ( (List.minimum xs, List.minimum ys), (List.maximum xs, List.maximum ys))
+  ((List.minimum xs, List.minimum ys), (List.maximum xs, List.maximum ys))
 
 clearBoard : Board -> (Board, Int)
 clearBoard b =
@@ -111,12 +111,12 @@ clear n xs b =
 checkLine : Board -> Int -> Bool
 checkLine b n =
   let locs = List.map2 (\a b -> (a,b)) [0..9] (replicate 10 n) in
-  let check loc acc = (List.member loc b) && acc in
+  let check loc acc = (Dict.member loc b) && acc in
   List.foldr check True locs
 
 isValidState : GameState -> Bool
 isValidState (board, tr) =
-  let noCollision = List.foldr (\loc acc -> (not (List.member loc board)) && acc) True tr in
+  let noCollision = List.foldr (\loc acc -> (not (Dict.member loc board)) && acc) True tr in
   let ((minX, minY), (maxX, maxY)) = bounds tr in
   let inBounds = minX >= 0 && minY >= -2 && maxX < boardWidth && maxY < boardHeight in
   noCollision && inBounds
