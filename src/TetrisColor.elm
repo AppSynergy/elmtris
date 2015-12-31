@@ -2,7 +2,7 @@ module TetrisColor where
 
 import Color exposing (..)
 
-data TetrisColor = Red | Orange | Yellow | Green | Blue | Indigo | Violet | Shadow
+type alias TetrisColor = Red | Orange | Yellow | Green | Blue | Indigo | Violet | Shadow
 
 toColor : TetrisColor -> Color
 toColor c =

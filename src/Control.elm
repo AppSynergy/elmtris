@@ -6,7 +6,7 @@ import Tetromino exposing (..)
 import Board exposing (..)
 import Dict exposing (empty, insert, member, toList, remove, fromList)
 
-data Control = MoveLeft
+type alias Control = MoveLeft
              | MoveRight
              | Drop
              | HardDrop
@@ -19,7 +19,7 @@ type GameState = (Board, Tetromino)
 type Bound = (Location, Location)
 
 -- A Tetromino can be rotate Clockwise or Counter Clockwise
-data Rotation = CW
+type alias Rotation = CW
               | CCW
 
 left : Tetromino -> Tetromino
