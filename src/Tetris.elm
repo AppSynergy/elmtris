@@ -135,7 +135,8 @@ swapHold piece game =
     False -> game
     True ->
       let
-        next = {game| hold = (Just << reset <| game.falling), canHold = False}
+        notMaybeFalling = Maybe.withDefault (line,Blue) game.falling
+        next = {game| hold = (Just << reset <| notMaybeFalling), canHold = False}
         preRemain = Maybe.withDefault [(line,Blue)] (List.tail game.preview)
       in
       case game.hold of
@@ -211,7 +212,8 @@ setPiece n t game =
     True ->
       if not << checkSet << toGameState <| game then game else
       if (game.setDelay > (Time.inSeconds t)) then game else
-      let next = List.head game.preview in
+      let next = Maybe.withDefault (line,Blue) (List.head game.preview) in
+      --let next = List.head game.preview in
       let preview = (List.tail game.preview) ++ [getPiece n] in
       let board' = insertTetromino (game.falling) (game.board) in
       let game' = {game | board = board', falling = next, preview = preview} in
