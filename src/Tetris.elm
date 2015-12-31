@@ -51,19 +51,24 @@ holdKey = toCode 'x'
 toggleMusicKey : Int
 toggleMusicKey = toCode 'm'
 
+
 pieceDict : Dict Int Piece
-pieceDict = fromList << List.map2 (,) [0..6] pieces
+pieceDict = fromList << List.map2 (,) [0..6] <| pieces
+
 
 pieces : List Piece
 pieces =
   List.map2 (,) (List.map (shift (4, 0)) [line, square, zpiece, spiece, jpiece, lpiece, tpiece])
-      [Red,  Orange, Yellow, Green,  Blue,   Indigo, Violet]
+      [Red,  Orange, Yellow, Green,  Blue, Indigo, Violet]
+
 
 getPiece : Int -> Piece
--- Remove Dict.getOrElse
--- and Dict.getOrFail in favor of withDefault 0 (Dict.get key dict)
---getPiece n = getOrElse (List.head pieces) n pieceDict
-getPiece n = Maybe.withDefault 0 (Dict.get n pieceDict)
+getPiece n =
+  let pieceList = Maybe.withDefault line (List.head pieces) in
+  case Dict.get n pieceDict of
+    Just p -> p
+    Nothing -> pieceList
+
 
 game = { board=emptyBoard,
          init=True,
@@ -79,7 +84,7 @@ game = { board=emptyBoard,
          timestamp=0,
          level=1,
          score=0,
-         lines=0,
+         lines=Text.empty,
          tick=0,
          set=False,
          paused=True,
@@ -97,7 +102,11 @@ getPoints x =
     4 -> 1000
     _ -> 0
 
-handle (arrow, keys, t, next, init) = smoothControl t keys << cleanup keys << setPiece next t << autoDrop t << arrowControls arrow << keyControls keys << hold keys next << startup init << restartGame keys << pause keys << toggleMusic keys << dropSound keys << clear
+handle (arrow, keys, t, next, init) =
+  smoothControl t keys << cleanup keys << setPiece next t
+  << autoDrop t << arrowControls arrow << keyControls keys
+  << hold keys next << startup init << restartGame keys
+  << pause keys << toggleMusic keys << dropSound keys << clear
 
 clear game = {game | click = False, dropSound = False}
 
@@ -128,10 +137,10 @@ swapHold piece game =
     False -> game
     True ->
       let next = {game| hold = (Just << reset <| game.falling),
-                        canHold = False} in
+        canHold = False} in
       case game.hold of
         Nothing -> {next| falling = (List.head game.preview),
-                          preview = ((List.tail game.preview) ++ [piece])}
+          preview = ((List.tail game.preview) ++ [piece])}
         Just held -> {next| falling = held}
 
 reset (tr, color) =
@@ -198,8 +207,8 @@ setPiece n t game =
     True ->
       if not << checkSet << toGameState <| game then game else
       if (game.setDelay > (Time.inSeconds t)) then game else
-      let next = List.head game.preview in
-      let preview = (List.tail game.preview) ++ [getPiece n] in
+      let next = []::List.head game.preview in
+      let preview = []::(List.tail game.preview) ++ [getPiece n] in
       let board' = insertTetromino (game.falling) (game.board) in
       let game' = {game | board = board', falling = next, preview = preview} in
       let gameover = not << isValidState << toGameState <| game' in
@@ -223,7 +232,7 @@ arrowControls arr game =
   let game' = List.foldr doControl game <| getArrowControl (x, y) in
   if y == 1 then {game'| click = True} else game'
 
-getArrowControl : (Int, Int) -> List Maybe Control
+getArrowControl : (Int, Int) -> List (Maybe Control)
 getArrowControl (x, y) =
   let moveX =
         case x of
@@ -308,7 +317,7 @@ gameoverScreenText game =
   let contents = G.flow G.down [label "Score: " game.score,
                           label "Level: " game.level,
                           label "Lines: " game.lines] in
-  let title = G.leftAligned << Text.height 28 << Text.bold << G.show <| "Game Over" in
+  let title = G.leftAligned << Text.height 28 << Text.bold << Text.fromString <| "Game Over" in
   G.flow G.down [G.spacer 10 10, title, G.spacer 50 50, contents, G.show "Press R to play again"]
 
 pauseScreenText game =
@@ -323,7 +332,7 @@ pauseScreenText game =
                   "P - Toggle this screen",
                   "M - Toggle Music",
                   "R - New Game"] in
-  let title = G.leftAligned << Text.height 28 << Text.bold << C.text <| "Elmtris" in
+  let title = G.leftAligned << Text.height 28 << Text.bold << Text.fromString <| "Elmtris" in
   G.flow G.down [G.spacer 10 10, title, G.spacer 50 50, contents]
 
 
@@ -348,8 +357,8 @@ holdBoard game =
           Nothing -> G.show "Press 'x'"
           Just x -> pieceToElement x
   in
-  let lines = C.collage panelWidth 30 << (flip (::) []) << C.toForm << C.text
-    <| game.lines
+  let lines = C.collage panelWidth 30 << (flip (::) [])
+    << C.toForm << Text.asText <| game.lines 
   in
   G.container panelWidth panelHeight G.midTop
     <| G.flow G.down [G.spacer 10 10, G.show "Holding", G.spacer 10 10, held]
@@ -377,13 +386,13 @@ inputSignal = Signal.map5 (,,,,) arrows keysDown ticker (range 0 6 ticker) (rand
 piece = rotate CW <| shift (0,1) zpiece
 
 
-range : Int -> Int -> Signal Float -> Signal Int
+range :  Int -> Int -> Signal ( a, a ) -> Float -> b
 range low high sig =
   (\s -> Random.generate (Random.int low high) (Random.initialSeed (round s))
   |> Signal.map fst sig)
 
 
-randoms : Int -> Int -> Int -> Signal Float -> Signal (List Int)
+randoms : Int -> Int -> Int -> Signal ( a, a ) -> Float -> b
 randoms n low high sig =
   (\s -> Random.generate (Random.list n (Random.int low high))
   (Random.initialSeed (round s))
