@@ -1,13 +1,13 @@
 module Tetromino where
 
-import Location (..)
+import Location exposing (..)
 import Util
 
 -- A Tetromino is a list of Locations. By definition, a valid tetromino
 -- should contain exactly 4 different locations
 type Tetromino = [Location]
 
--- A line piece 
+-- A line piece
 -- ****
 line : Tetromino
 line = [(0,0), (1,0), (2,0), (3,0)]

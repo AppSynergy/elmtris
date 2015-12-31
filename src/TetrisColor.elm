@@ -1,11 +1,11 @@
 module TetrisColor where
 
-import Color (..)
+import Color exposing (..)
 
 data TetrisColor = Red | Orange | Yellow | Green | Blue | Indigo | Violet | Shadow
 
 toColor : TetrisColor -> Color
-toColor c = 
+toColor c =
   case c of
     Red -> red
     Orange -> orange
@@ -15,4 +15,3 @@ toColor c =
     Indigo -> darkBlue
     Violet -> purple
     Shadow -> rgba 255 255 255 0.10
-    
