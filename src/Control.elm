@@ -43,7 +43,7 @@ hardDrop g =
 
 shift : (Int, Int) -> Tetromino -> Tetromino
 shift (offX, offY) tr =
-  map (\(x0, y0) -> (x0+offX, y0+offY)) tr
+  List.map (\(x0, y0) -> (x0+offX, y0+offY)) tr
 
 -- Given a direction to rotate, and Tetromino,
 -- return a Tetromino that is the result of rotating the
@@ -61,7 +61,7 @@ rotate rot tr =
       --Stupid fix for squares and lines
       let off = if rows == cols || rows == 3 then -1 else 0 in
       let rt (c, r) = (-r, c+off) in
-      let rotated = map rt trans in
+      let rotated = List.map rt trans in
       shift (cC, rC) rotated
 
 dimensions : Tetromino -> (Int, Int)
@@ -76,7 +76,7 @@ round' x =
 centerOfMass : Tetromino -> Location
 centerOfMass tr =
   let (rows, cols) = dimensions tr in
-  let (sumX, sumY, tot) = foldr (\(x0,y0) (x1,y1,t) -> ((toFloat x0)+x1, (toFloat y0)+y1, t+1)) (0,0,0) tr in
+  let (sumX, sumY, tot) = List.foldr (\(x0,y0) (x1,y1,t) -> ((toFloat x0)+x1, (toFloat y0)+y1, t+1)) (0,0,0) tr in
   (round <| sumY / tot, round' <| sumX / tot)
 
 -- Given a Tetromino, return the bounding box that encompasses
@@ -84,13 +84,13 @@ centerOfMass tr =
 bounds : Tetromino -> Bound
 bounds tr =
   let (xs, ys) = unzip tr in
-  ( (minimum xs, minimum ys), (maximum xs, maximum ys))
+  ( (List.minimum xs, List.minimum ys), (List.maximum xs, List.maximum ys))
 
 clearBoard : Board -> (Board, Int)
 clearBoard b =
-  let cleared = map (checkLine b) (reverse [0..19]) in
+  let cleared = List.map (checkLine b) (List.reverse [0..19]) in
   let newBoard = clear 19 cleared b in
-  let linesCleared = length << filter (\x -> x) <| cleared in
+  let linesCleared = List.length << List.filter (\x -> x) <| cleared in
   (newBoard, linesCleared)
 
 clear : Int -> List Bool -> Board -> Board
@@ -101,22 +101,22 @@ clear n xs b =
       case x of
         False -> clear (n-1) bs b
         True ->
-          let toDrop = filter (\((_,y),_) -> y < n) << toList <| b in
-          let keep = filter (\((_,y),_) -> y > n) << toList <| b in
+          let toDrop = List.filter (\((_,y),_) -> y < n) << toList <| b in
+          let keep = List.filter (\((_,y),_) -> y > n) << toList <| b in
           let drop ((x, y), color) = ((x, y+1), color) in
-          let dropped = map drop toDrop in
+          let dropped = List.map drop toDrop in
           let cleared = fromList (dropped ++ keep) in
           clear n bs cleared
 
 checkLine : Board -> Int -> Bool
 checkLine b n =
   let locs = zip [0..9] (replicate 10 n) in
-  let check loc acc = (member loc b) && acc in
-  foldr check True locs
+  let check loc acc = (List.member loc b) && acc in
+  List.foldr check True locs
 
 isValidState : GameState -> Bool
 isValidState (board, tr) =
-  let noCollision = foldr (\loc acc -> (not (member loc board)) && acc) True tr in
+  let noCollision = List.foldr (\loc acc -> (not (List.member loc board)) && acc) True tr in
   let ((minX, minY), (maxX, maxY)) = bounds tr in
   let inBounds = minX >= 0 && minY >= -2 && maxX < boardWidth && maxY < boardHeight in
   noCollision && inBounds
