@@ -4,3 +4,4 @@ cache/
 Makefile*
 [#]*
 elm-stuff/
+node_modules/
