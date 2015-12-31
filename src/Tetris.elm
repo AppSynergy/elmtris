@@ -358,7 +358,7 @@ holdBoard game =
           Just x -> pieceToElement x
   in
   let lines = C.collage panelWidth 30 << (flip (::) [])
-    << C.toForm << Text.asText <| game.lines 
+    << C.toForm << G.show <| game.lines 
   in
   G.container panelWidth panelHeight G.midTop
     <| G.flow G.down [G.spacer 10 10, G.show "Holding", G.spacer 10 10, held]
