@@ -83,7 +83,7 @@ centerOfMass tr =
 -- all of its locations
 bounds : Tetromino -> Bound
 bounds tr =
-  let (xs, ys) = unzip tr in
+  let (xs, ys) = List.unzip tr in
   ( (List.minimum xs, List.minimum ys), (List.maximum xs, List.maximum ys))
 
 clearBoard : Board -> (Board, Int)
@@ -110,7 +110,7 @@ clear n xs b =
 
 checkLine : Board -> Int -> Bool
 checkLine b n =
-  let locs = zip [0..9] (replicate 10 n) in
+  let locs = List.map2 (\a b -> (a,b)) [0..9] (replicate 10 n) in
   let check loc acc = (List.member loc b) && acc in
   List.foldr check True locs
 
