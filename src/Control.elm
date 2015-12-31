@@ -51,7 +51,7 @@ shift (offX, offY) tr =
 rotate : Rotation -> Tetromino -> Tetromino
 rotate rot tr =
   case rot of
-    CCW -> rotate CW . rotate CW . rotate CW <| tr
+    CCW -> rotate CW << rotate CW << rotate CW <| tr
     CW ->
       let ((minX, minY), (maxX, maxY)) = bounds tr in
       let rows = maxY - minY in
@@ -90,7 +90,7 @@ clearBoard : Board -> (Board, Int)
 clearBoard b =
   let cleared = map (checkLine b) (reverse [0..19]) in
   let newBoard = clear 19 cleared b in
-  let linesCleared = length . filter (\x -> x) <| cleared in
+  let linesCleared = length << filter (\x -> x) <| cleared in
   (newBoard, linesCleared)
 
 clear : Int -> List Bool -> Board -> Board
@@ -101,8 +101,8 @@ clear n xs b =
       case x of
         False -> clear (n-1) bs b
         True ->
-          let toDrop = filter (\((_,y),_) -> y < n) . toList <| b in
-          let keep = filter (\((_,y),_) -> y > n) . toList <| b in
+          let toDrop = filter (\((_,y),_) -> y < n) << toList <| b in
+          let keep = filter (\((_,y),_) -> y > n) << toList <| b in
           let drop ((x, y), color) = ((x, y+1), color) in
           let dropped = map drop toDrop in
           let cleared = fromList (dropped ++ keep) in
@@ -122,7 +122,7 @@ isValidState (board, tr) =
   noCollision && inBounds
 
 checkSet : GameState -> Bool
-checkSet = not . isValidState . (flip forceControl Drop)
+checkSet = not << isValidState << (flip forceControl Drop)
 
 control : GameState -> Control -> GameState
 control s c =

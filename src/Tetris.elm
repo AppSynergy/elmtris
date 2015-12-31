@@ -50,7 +50,7 @@ toggleMusicKey : Int
 toggleMusicKey = toCode 'm'
 
 pieceDict : Dict Int Piece
-pieceDict = fromList . zip [0..6] <| pieces
+pieceDict = fromList << zip [0..6] <| pieces
 
 pieces : [Piece]
 pieces =
@@ -92,7 +92,7 @@ getPoints x =
     4 -> 1000
     _ -> 0
 
-handle (arrow, keys, t, next, init) = smoothControl t keys . cleanup keys . setPiece next t . autoDrop t . arrowControls arrow . keyControls keys . hold keys next . startup init . restartGame keys . pause keys . toggleMusic keys . dropSound keys . clear
+handle (arrow, keys, t, next, init) = smoothControl t keys << cleanup keys << setPiece next t << autoDrop t << arrowControls arrow << keyControls keys << hold keys next << startup init << restartGame keys << pause keys << toggleMusic keys << dropSound keys << clear
 
 clear game = {game | click <- False, dropSound <- False}
 
@@ -122,7 +122,7 @@ swapHold piece game =
   case game.canHold of
     False -> game
     True ->
-      let next = {game| hold <- (Just . reset <| game.falling),
+      let next = {game| hold <- (Just << reset <| game.falling),
                         canHold <- False} in
       case game.hold of
         Nothing -> {next| falling <- (head game.preview),
@@ -133,7 +133,7 @@ reset (tr, color) =
   let ((minX, minY), (_, maxY)) = bounds tr in
   let width = 1 + maxY - minY in
   let center = (boardWidth `div` 2) - (width `div` 2) in
-  let tr' = shift (center, 0) . shift (-minX, -minY) <| tr in
+  let tr' = shift (center, 0) << shift (-minX, -minY) <| tr in
   (tr', color)
 
 startup (p::pieces) game =
@@ -149,7 +149,7 @@ smoothControl t ks game =
     [] -> {game | keyDelay <- False, timestamp <- inSeconds t, forceDelay <- False, tap <- False, tapped <- (False, 0)}
     _ ->
       let time = inSeconds t in
-        doKeyDelay time . doTapDelay time <| game
+        doKeyDelay time << doTapDelay time <| game
 
 doTapDelay time game =
    case game.tapped of
@@ -183,7 +183,7 @@ autoDrop t game =
     case drop of
       False -> game
       True ->
-       let set = checkSet . toGameState <| game in
+       let set = checkSet << toGameState <| game in
        let delay = if (set && not game.set) then time+setDelay else game.setDelay in
        {next | tick <- time, set <- set, setDelay <- delay}
 
@@ -191,13 +191,13 @@ setPiece n t game =
   case game.set of
     False -> game
     True ->
-      if not . checkSet . toGameState <| game then game else
+      if not << checkSet << toGameState <| game then game else
       if (game.setDelay > (inSeconds t)) then game else
       let next = head game.preview in
       let preview = (tail game.preview) ++ [getPiece n] in
       let board' = insertTetromino (game.falling) (game.board) in
       let game' = {game | board <- board', falling <- next, preview <- preview} in
-      let gameover = not . isValidState . toGameState <| game' in
+      let gameover = not << isValidState << toGameState <| game' in
       {game'| time <- (inSeconds t), set <- False, canHold <- True, gameover <- gameover}
 
 toGameState game = (game.board, fst <| game.falling)
@@ -229,7 +229,7 @@ getArrowControl (x, y) =
    let moveY =
          case y of
            -1 -> Just Drop
-           1 -> Just . Rotate <| CW
+           1 -> Just << Rotate <| CW
            0 -> Nothing
    in
     [moveX, moveY]
@@ -270,7 +270,7 @@ scoreBoard game =
                          label "Level: " game.level,
                          label "Lines: " game.lines]
   in
-   collage panelWidth 100 . (flip (::) []) . C.toForm <| board
+   collage panelWidth 100 << (flip (::) []) << C.toForm <| board
 
 render game =
   let withPiece = insertTetromino (game.falling) (game.board) in
@@ -303,14 +303,14 @@ gameoverScreenText game =
   let contents = flow down [label "Score: " game.score,
                           label "Level: " game.level,
                           label "Lines: " game.lines] in
-  let title = leftAligned . Text.height 28 . bold . toText <| "Game Over" in
+  let title = leftAligned << Text.height 28 << bold << toText <| "Game Over" in
   flow down [spacer 10 10, title, spacer 50 50, contents, plainText "Press R to play again"]
 
 pauseScreenText game =
   let w = width in
   let h = 30 in
-  let format = map (container w h G.topLeft . plainText) in
-  let contents = flow down . format <|
+  let format = map (container w h G.topLeft << plainText) in
+  let contents = flow down << format <|
                  ["Left, Down, Right Arrow - Move",
                   "Up Arrow - Rotate",
                   "Space - Drop",
@@ -318,7 +318,7 @@ pauseScreenText game =
                   "P - Toggle this screen",
                   "M - Toggle Music",
                   "R - New Game"] in
-  let title = leftAligned . Text.height 28 . bold . toText <| "Elmtris" in
+  let title = leftAligned << Text.height 28 << bold << toText <| "Elmtris" in
   flow down [spacer 10 10, title, spacer 50 50, contents]
 
 
@@ -327,14 +327,14 @@ shadow (tr, color) board boardDisplay =
   let ((minX, minY), _) = bounds shadow in
   let offset = (-(fwidth/2)+(fblockSize/2), (fheight/2)-(fblockSize/2)) in
   let offset' = ((toFloat minX) * fblockSize, -(toFloat minY) * fblockSize) in
-  let elem = move offset' . move offset <| pieceToForm fblockSize (shadow, Shadow) in
+  let elem = move offset' << move offset <| pieceToForm fblockSize (shadow, Shadow) in
   let asForm = C.toForm boardDisplay in
   collage width height [asForm, elem]
 
 
 
 previewBoard game =
-  let preview = flow down . intersperse (spacer 10 10) . map pieceToElement <| (game.preview) in
+  let preview = flow down << intersperse (spacer 10 10) << map pieceToElement <| (game.preview) in
   container panelWidth panelHeight midTop <| flow down [spacer 10 10, plainText "Next", spacer 10 10, preview, spacer 10 10, scoreBoard game]
 
 holdBoard game =
@@ -343,7 +343,7 @@ holdBoard game =
           Nothing -> plainText "Press 'x'"
           Just x -> pieceToElement x
   in
-   let lines = collage panelWidth 30 . (flip (::) []) . C.toForm . asText <| game.lines in
+   let lines = collage panelWidth 30 << (flip (::) []) << C.toForm << asText <| game.lines in
   container panelWidth panelHeight midTop <| flow down [spacer 10 10, plainText "Holding", spacer 10 10, held]
 
 pieceToForm fblockSize (tr, color) =
