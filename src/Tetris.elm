@@ -17,7 +17,8 @@ import Char exposing (toCode, fromCode)
 import Graphics.Element as G
 import Graphics.Collage as C
 import Text
-type Piece = (Tetromino, TetrisColor)
+
+type alias Piece = (Tetromino, TetrisColor)
 
 
 width = 300
@@ -52,7 +53,7 @@ toggleMusicKey = toCode 'm'
 pieceDict : Dict Int Piece
 pieceDict = fromList << zip [0..6] <| pieces
 
-pieces : [Piece]
+pieces : List Piece
 pieces =
   zip (map (shift (4, 0)) [line, square, zpiece, spiece, jpiece, lpiece, tpiece])
       [Red,  Orange, Yellow, Green,  Blue,   Indigo, Violet]
@@ -94,7 +95,7 @@ getPoints x =
 
 handle (arrow, keys, t, next, init) = smoothControl t keys << cleanup keys << setPiece next t << autoDrop t << arrowControls arrow << keyControls keys << hold keys next << startup init << restartGame keys << pause keys << toggleMusic keys << dropSound keys << clear
 
-clear game = {game | click <- False, dropSound <- False}
+clear game = {game | click = False, dropSound = False}
 
 hold ks n game =
   let doHold = any ((==) holdKey) ks in
@@ -103,31 +104,31 @@ hold ks n game =
 
 dropSound keys g =
   if g.forceDelay then g else
-    if (any ((==)hardDropKey) keys) then {g | dropSound <- True} else g
+    if (any ((==)hardDropKey) keys) then {g | dropSound = True} else g
 
 restartGame keys g =
   if g.forceDelay then g else
-  if (any ((==)restartKey) keys) then {game| paused <- False, forceDelay <- True} else g
+  if (any ((==)restartKey) keys) then {game| paused = False, forceDelay = True} else g
 
 pause keys game =
   if game.forceDelay then game else
-  if (any ((==)pauseKey) keys) then {game| paused <- not game.paused, forceDelay <- True} else game
+  if (any ((==)pauseKey) keys) then {game| paused = not game.paused, forceDelay = True} else game
 
 toggleMusic keys game =
   if game.forceDelay then game else
-  if (any ((==)toggleMusicKey) keys) then {game| music <- not game.music, forceDelay <- True} else game
+  if (any ((==)toggleMusicKey) keys) then {game| music = not game.music, forceDelay = True} else game
 
 
 swapHold piece game =
   case game.canHold of
     False -> game
     True ->
-      let next = {game| hold <- (Just << reset <| game.falling),
-                        canHold <- False} in
+      let next = {game| hold = (Just << reset <| game.falling),
+                        canHold = False} in
       case game.hold of
-        Nothing -> {next| falling <- (head game.preview),
-                          preview <- ((tail game.preview) ++ [piece])}
-        Just held -> {next| falling <- held}
+        Nothing -> {next| falling = (head game.preview),
+                          preview = ((tail game.preview) ++ [piece])}
+        Just held -> {next| falling = held}
 
 reset (tr, color) =
   let ((minX, minY), (_, maxY)) = bounds tr in
@@ -142,27 +143,27 @@ startup (p::pieces) game =
     True ->
       let falling = getPiece p in
       let preview = map getPiece pieces in
-      {game | init <- False, falling <- falling, preview <- preview}
+      {game | init = False, falling = falling, preview = preview}
 
 smoothControl t ks game =
   case ks of
-    [] -> {game | keyDelay <- False, timestamp <- inSeconds t, forceDelay <- False, tap <- False, tapped <- (False, 0)}
+    [] -> {game | keyDelay = False, timestamp = inSeconds t, forceDelay = False, tap = False, tapped = (False, 0)}
     _ ->
       let time = inSeconds t in
         doKeyDelay time << doTapDelay time <| game
 
 doTapDelay time game =
    case game.tapped of
-     (False, _) -> {game| tapped <- (True, time)}
+     (False, _) -> {game| tapped = (True, time)}
      (True, at) ->
         let tap = (time - at) < tapDelay in
-        {game| tap <- tap}
+        {game| tap = tap}
 
 doKeyDelay time game =
         let wait = (time - game.timestamp) < (1/maxMovesPerSecond) in
         if wait
-           then {game | keyDelay <- True}
-           else {game | keyDelay <- False, timestamp <- time}
+           then {game | keyDelay = True}
+           else {game | keyDelay = False, timestamp = time}
 
 cleanup keys game =
   let (board', cleared) = clearBoard game.board in
@@ -170,11 +171,11 @@ cleanup keys game =
   let score = game.score + points in
   let lines = game.lines + cleared in
   let level = toFloat <| (lines `div` 10) + 1 in
-  {game| board <- board',
-         score <- score,
-         lines <- lines,
-         level <- level,
-         keys <- keys}
+  {game| board = board',
+         score = score,
+         lines = lines,
+         level = level,
+         keys = keys}
 
 autoDrop t game =
   let time = (inSeconds t) in
@@ -185,7 +186,7 @@ autoDrop t game =
       True ->
        let set = checkSet << toGameState <| game in
        let delay = if (set && not game.set) then time+setDelay else game.setDelay in
-       {next | tick <- time, set <- set, setDelay <- delay}
+       {next | tick = time, set = set, setDelay = delay}
 
 setPiece n t game =
   case game.set of
@@ -196,9 +197,9 @@ setPiece n t game =
       let next = head game.preview in
       let preview = (tail game.preview) ++ [getPiece n] in
       let board' = insertTetromino (game.falling) (game.board) in
-      let game' = {game | board <- board', falling <- next, preview <- preview} in
+      let game' = {game | board = board', falling = next, preview = preview} in
       let gameover = not << isValidState << toGameState <| game' in
-      {game'| time <- (inSeconds t), set <- False, canHold <- True, gameover <- gameover}
+      {game'| time = (inSeconds t), set = False, canHold = True, gameover = gameover}
 
 toGameState game = (game.board, fst <| game.falling)
 
@@ -216,9 +217,9 @@ arrowControls arr game =
   let x = arr.x in
   let y = arr.y in
   let game' = foldr doControl game <| getArrowControl (x, y) in
-  if y == 1 then {game'| click <- True} else game'
+  if y == 1 then {game'| click = True} else game'
 
-getArrowControl : (Int, Int) -> [Maybe Control]
+getArrowControl : (Int, Int) -> List Maybe Control
 getArrowControl (x, y) =
   let moveX =
         case x of
@@ -239,7 +240,7 @@ forceControl c game =
   let board = game.board in
   let (tr, color) = game.falling in
   let (board', tr') = control (board, tr) c in
-  {game | board <- board', falling <- (tr', color)}
+  {game | board = board', falling = (tr', color)}
 
 doControl c game =
   if (game.paused || game.keyDelay || game.tap) then game else
@@ -248,8 +249,8 @@ doControl c game =
    Just c ->
      if (isForcedDelay c && game.forceDelay) then game else
       let game' = forceControl c game in
-      let game'' = if (isForcedDelay c) then {game' | forceDelay <- True} else game' in
-      if (isSetControl c) then {game'' | set <- True} else game''
+      let game'' = if (isForcedDelay c) then {game' | forceDelay = True} else game' in
+      if (isSetControl c) then {game'' | set = True} else game''
 
 isForcedDelay c =
   case c of
@@ -378,7 +379,7 @@ handleTheme g = if g.music && (not g.paused) then Audio.Play else Audio.Pause
 theme =
     let props p = if p.currentTime > 37.6 then Just (Audio.Seek 0.05) else Nothing
         builder = { src = "snd/theme.mp3",
-                    triggers = {defaultTriggers | timeupdate <- True},
+                    triggers = {defaultTriggers | timeupdate = True},
                     propertiesHandler = props,
                     actions = handleTheme <~ mainSignal }
     in Audio.audio builder
