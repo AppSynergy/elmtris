@@ -1,7 +1,7 @@
 module Tetris where
 
-import Audio
-import Audio exposing (defaultTriggers)
+--import Audio
+--import Audio exposing (defaultTriggers)
 import Mouse
 import Util exposing (..)
 import Tetromino exposing (..)
