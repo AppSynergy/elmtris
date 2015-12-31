@@ -79,12 +79,17 @@ centerOfMass tr =
   let (sumX, sumY, tot) = List.foldr (\(x0,y0) (x1,y1,t) -> ((toFloat x0)+x1, (toFloat y0)+y1, t+1)) (0,0,0) tr in
   (round <| sumY / tot, round' <| sumX / tot)
 
+minimum : List comparable -> comparable
+minimum = List.minimum
+maximum : List comparable -> comparable
+maximum = List.maximum
+
 -- Given a Tetromino, return the bounding box that encompasses
 -- all of its locations
 bounds : Tetromino -> Bound
 bounds tr =
   let (xs, ys) = List.unzip tr in
-  ((List.minimum xs, List.minimum ys), (List.maximum xs, List.maximum ys))
+  ((minimum xs, minimum ys), (maximum xs, maximum ys))
 
 clearBoard : Board -> (Board, Int)
 clearBoard b =
