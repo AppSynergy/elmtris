@@ -1,7 +1,7 @@
 module Board where
 
 import Tetromino exposing (Tetromino)
-import Location exposing (..)
+import Location exposing (Location)
 import TetrisColor exposing (..)
 import Dict exposing (Dict, toList, empty)
 import Dict
@@ -10,7 +10,7 @@ import Graphics.Collage exposing (..)
 import Color exposing (..)
 
 -- Board is a dictionary of Locations and the color of the block there
-type Board = Dict Location TetrisColor
+type alias Board = Dict Location TetrisColor
 
 boardWidth = 10
 boardHeight = 2*boardWidth
@@ -31,7 +31,7 @@ asElement b blockSize =
   collage width height [background, blocks]
 
 insertTetromino : (Tetromino, TetrisColor) -> Board -> Board
-insertTetromino (toAdd, color) b = Dict.foldr (\loc -> insert loc color) b toAdd
+insertTetromino (toAdd, color) b = List.foldr (\loc -> insert loc color) b toAdd
 
 insert : Location -> TetrisColor -> Board -> Board
 insert = Dict.insert
