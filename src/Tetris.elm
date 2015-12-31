@@ -61,10 +61,12 @@ pieces =
   List.map2 (,) (List.map (shift (4, 0)) [line, square, zpiece, spiece, jpiece, lpiece, tpiece])
       [Red,  Orange, Yellow, Green,  Blue, Indigo, Violet]
 
-getPiece : Int -> Maybe Piece
-getPiece n = case Dict.get n pieceDict of
-  Just p -> p
-  Nothing -> List.head pieces
+getPiece : Int -> Piece
+getPiece n =
+  let
+    defaultPiece = Maybe.withDefault (line,Blue) (List.head pieces)
+  in
+  Maybe.withDefault defaultPiece (Dict.get n pieceDict)
 
 game = { board=emptyBoard,
          init=True,
