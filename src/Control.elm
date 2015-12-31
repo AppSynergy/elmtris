@@ -6,21 +6,25 @@ import Tetromino exposing (..)
 import Board exposing (..)
 import Dict exposing (empty, insert, member, toList, remove, fromList)
 
-type alias Control = MoveLeft
-             | MoveRight
-             | Drop
-             | HardDrop
-             | Rotate Rotation
+type Control
+  = MoveLeft
+  | MoveRight
+  | Drop
+  | HardDrop
+  | Rotate Rotation
 
-type GameState = (Board, Tetromino)
+type alias GameState
+  = (Board, Tetromino)
 
 -- A bound is a pair of minimum and maximum locations. Typically,
 -- A bound is the containing box of a tetromino
-type Bound = (Location, Location)
+type alias Bound
+  = (Location, Location)
 
 -- A Tetromino can be rotate Clockwise or Counter Clockwise
-type alias Rotation = CW
-              | CCW
+type Rotation
+  = CW
+  | CCW
 
 left : Tetromino -> Tetromino
 left = shift (-1, 0)
