@@ -89,7 +89,7 @@ clearBoard b =
   let linesCleared = length . filter (\x -> x) <| cleared in
   (newBoard, linesCleared)
 
-clear : Int -> [Bool] -> Board -> Board
+clear : Int -> List Bool -> Board -> Board
 clear n xs b =
   case xs of
     [] -> b

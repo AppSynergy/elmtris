@@ -51,6 +51,7 @@ toggleMusicKey = toCode 'm'
 
 pieceDict : Dict Int Piece
 pieceDict = fromList . zip [0..6] <| pieces
+
 pieces : [Piece]
 pieces =
   zip (map (shift (4, 0)) [line, square, zpiece, spiece, jpiece, lpiece, tpiece])
